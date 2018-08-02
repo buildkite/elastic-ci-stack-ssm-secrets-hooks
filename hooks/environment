@@ -28,21 +28,20 @@ done < <(sm_secret_names)
 # First up we look for ssh keys if the repository is ssh
 if [[ "${BUILDKITE_REPO:-}" =~ ^git ]] ; then
   ssh_key_paths=(
-    "global/ssh-private-key"
-    "pipeline/${BUILDKITE_PIPELINE_SLUG}/ssh-private-key"
+    "${prefix}/global/ssh-private-key"
+    "${prefix}/pipeline/${BUILDKITE_PIPELINE_SLUG}/ssh-private-key"
   )
 
   # Look in our key paths in order, but we'll load them all
   for key in ${ssh_key_paths[*]} ; do
-    full_key="${prefix}/${key}"
-    debug "Checking ${full_key}" >&2
+    debug "Checking ${key}" >&2
 
     # Check if that secret key exists
-    if in_array "$full_key" "${secrets[@]}" ; then
-      echo "Found ssh-key at ${full_key}" >&2;
+    if in_array "$key" "${secrets[@]}" ; then
+      echo "Found ssh-key at ${key}" >&2;
 
-      if ! ssh_key=$(sm_secret_get "$full_key") ; then
-        echo "+++ :warning: Failed to get secret for ssh-key $full_key" >&2;
+      if ! ssh_key=$(sm_secret_get "$key") ; then
+        echo "+++ :warning: Failed to get secret $key" >&2;
         exit 1
       fi
 
@@ -60,21 +59,20 @@ if [[ "${BUILDKITE_REPO:-}" =~ ^git ]] ; then
 fi
 
 # Otherwise check for git credentials for https, use the first one we find
-if [[ "${BUILDKITE_REPO:-}" =~ ^https ]] ; then
+if [[ "${BUILDKITE_REPO:-}" =~ ^http ]] ; then
   git_credentials_paths=(
-    "global/git-credentials"
-    "pipeline/${BUILDKITE_PIPELINE_SLUG}/git-credentials"
+    "${prefix}/global/git-credentials"
+    "${prefix}/pipeline/${BUILDKITE_PIPELINE_SLUG}/git-credentials"
   )
 
   git_credentials=()
 
   for key in ${git_credentials_paths[*]} ; do
-    full_key="${prefix}/${key}"
-    debug "Checking ${full_key}" >&2
+    debug "Checking ${key}" >&2
 
-    if in_array "$full_key" "${secrets[@]}" ; then
-      echo "Adding git-credentials in $full_key as a credential helper" >&2;
-      git_credentials+=("'credential.helper=$basedir/git-credential-sm-secrets ${full_key}'")
+    if in_array "$key" "${secrets[@]}" ; then
+      echo "Adding git-credentials in $key as a credential helper" >&2;
+      git_credentials+=("'credential.helper=$basedir/git-credential-sm-secrets ${key}'")
     fi
   done
 
@@ -85,45 +83,28 @@ if [[ "${BUILDKITE_REPO:-}" =~ ^https ]] ; then
   fi
 fi
 
-# env_paths=(
-#   "env"
-#   "environment"
-#   "${s3_bucket_prefix}/env"
-#   "${s3_bucket_prefix}/environment"
-# )
+# Finally look for environment variables
+env_path_prefixes=(
+  "${prefix}/global/env/"
+  "${prefix}/pipeline/${BUILDKITE_PIPELINE_SLUG}/env/"
+)
 
-# env_before="$(env | sort)"
+for secret_name in ${secrets[*]} ; do
+  for env_path_prefix in ${env_path_prefixes[*]} ; do
+    if [[ $secret_name =~ ^$env_path_prefix ]] ; then
+      echo "Found env $secret_name" >&2;
 
-# for key in ${env_paths[*]} ; do
-#   if s3_exists "$s3_bucket" "$key" ; then
-#     echo "Downloading env file from ${key}" >&2;
-#     if ! envscript=$(s3_download "${s3_bucket}" "$key") ; then
-#       echo "+++ :warning: Failed to download env from $key" >&2;
-#       exit 1
-#     fi
-#     echo "Evaluating ${#envscript} bytes of env"
-#     set -o allexport
-#     eval "$envscript"
-#     set +o allexport
-#   fi
-# done
+      if ! secret_value=$(sm_secret_get "$secret_name") ; then
+        echo "+++ :warning: Failed to get secret $secret_name" >&2;
+        exit 1
+      fi
 
-# git_credentials_paths=(
-#   "git-credentials"
-#   "${s3_bucket_prefix}/git-credentials"
-# )
+      secret_env_key=$(basename $secret_name)
+      export "$secret_env_key"="$secret_value"
+    else
+      debug "didn't match $secret_name"
+    fi
+  done
+done
 
-# git_credentials=()
-
-# for key in ${git_credentials_paths[*]} ; do
-#   if s3_exists "$s3_bucket" "$key" ; then
-#     echo "Adding git-credentials in $key as a credential helper" >&2;
-#     git_credentials+=("'credential.helper=$basedir/git-credential-sm-secrets ${s3_bucket} ${key}'")
-#   fi
-# done
-
-# if [[ "${#git_credentials[@]}" -gt 0 ]] ; then
-#   export GIT_CONFIG_PARAMETERS
-#   GIT_CONFIG_PARAMETERS=$( IFS=' '; echo -n "${git_credentials[*]}" )
-# fi
 

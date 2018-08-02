@@ -30,6 +30,30 @@ EOF
     ]
 }
 EOF
+  cat << EOF > $TMP_DIR/env-secrets
+{
+    "SecretList": [
+        {
+            "ARN": "arn:aws:secretsmanager:us-east-1:xxxxx:secret:elastic-ci-stack/global/ssh-private-key-xxxx",
+            "Name": "tests/global/env/MY_FAVORITE_LLAMA"
+        }
+    ]
+}
+EOF
+  cat << EOF > $TMP_DIR/env-secrets-pipeline
+{
+    "SecretList": [
+        {
+            "ARN": "arn:aws:secretsmanager:us-east-1:xxxxx:secret:elastic-ci-stack/global/ssh-private-key-xxxx",
+            "Name": "tests/global/env/MY_FAVORITE_LLAMA"
+        },
+        {
+            "ARN": "arn:aws:secretsmanager:us-east-1:xxxxx:secret:elastic-ci-stack/global/ssh-private-key-xxxx",
+            "Name": "tests/pipeline/test/env/MY_FAVORITE_LLAMA"
+        }
+    ]
+}
+EOF
 }
 
 teardown() {
@@ -63,7 +87,7 @@ teardown() {
   unstub aws
 }
 
-@test "Load git-credentials from bucket into GIT_CONFIG_PARAMETERS" {
+@test "Load git-credentials from global into GIT_CONFIG_PARAMETERS" {
   export BUILDKITE_PIPELINE_SLUG=test
   export BUILDKITE_SECRETS_MANAGER_PREFIX=tests
   export BUILDKITE_REPO=https://github.com/buildkite/llamas.git
@@ -86,6 +110,43 @@ teardown() {
   assert_output --partial "host=host"
   assert_output --partial "username=user"
   assert_output --partial "password=password"
+
+  unstub aws
+}
+
+@test "Load env from global" {
+  export BUILDKITE_PIPELINE_SLUG=test
+  export BUILDKITE_SECRETS_MANAGER_PREFIX=tests
+  export BUILDKITE_REPO=file://blah/llamas.git
+  export BUILDKITE_SECRETS_MANAGER_DEBUG=true
+
+  stub aws \
+    "secretsmanager list-secrets : cat $TMP_DIR/env-secrets" \
+    "secretsmanager get-secret-value --secret-id tests/global/env/MY_FAVORITE_LLAMA --query SecretBinary --output text : echo they are all good llamas"
+
+  run bash -c ". $PWD/hooks/environment && echo \$MY_FAVORITE_LLAMA && $PWD/hooks/pre-exit"
+
+  assert_success
+  assert_output --partial "they are all good llamas"
+
+  unstub aws
+}
+
+@test "Load env from pipeline over global" {
+  export BUILDKITE_PIPELINE_SLUG=test
+  export BUILDKITE_SECRETS_MANAGER_PREFIX=tests
+  export BUILDKITE_REPO=file://blah/llamas.git
+  export BUILDKITE_SECRETS_MANAGER_DEBUG=true
+
+  stub aws \
+    "secretsmanager list-secrets : cat $TMP_DIR/env-secrets-pipeline" \
+    "secretsmanager get-secret-value --secret-id tests/global/env/MY_FAVORITE_LLAMA --query SecretBinary --output text : echo nope" \
+    "secretsmanager get-secret-value --secret-id tests/pipeline/test/env/MY_FAVORITE_LLAMA --query SecretBinary --output text : echo they are all good llamas"
+
+  run bash -c ". $PWD/hooks/environment && echo \$MY_FAVORITE_LLAMA && $PWD/hooks/pre-exit"
+
+  assert_success
+  assert_output --partial "they are all good llamas"
 
   unstub aws
 }
