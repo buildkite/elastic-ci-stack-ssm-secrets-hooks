@@ -12,12 +12,12 @@ Different types of secrets are supported and exposed to your builds in appropria
 
 When run via the agent environment and pre-exit hook, your builds will check the following Secrets Manager paths:
 
-* `/buildkite/{org_slug}/global/ssh-private-key`
-* `/buildkite/{org_slug}/global/git-credentials`
-* `/buildkite/{org_slug}/global/env/{env_name}`
-* `/buildkite/{org_slug}/pipeline/{pipeline_slug}/ssh-private-key`
-* `/buildkite/{org_slug}/pipeline/{pipeline_slug}/git-credentials`
-* `/buildkite/{org_slug}/pipeline/{pipeline_slug}/env/{env_name}`
+* `buildkite/{org_slug}/ssh-private-key`
+* `buildkite/{org_slug}/git-credentials`
+* `buildkite/{org_slug}/env/{env_name}`
+* `buildkite/{org_slug}/pipeline/{pipeline_slug}/ssh-private-key`
+* `buildkite/{org_slug}/pipeline/{pipeline_slug}/git-credentials`
+* `buildkite/{org_slug}/pipeline/{pipeline_slug}/env/{env_name}`
 
 Inside those secrets, the following keys will be checked:
 

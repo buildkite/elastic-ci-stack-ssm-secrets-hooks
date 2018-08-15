@@ -1,10 +1,6 @@
 #!/bin/bash
 
 sm() {
-  # if ! aws help | grep "secretsmanager" ; then
-  #   echo "Your aws-cli doesn't support secretsmanager" >&2
-  #   exit 1
-  # fi
   aws secretsmanager "$@"
 }
 
