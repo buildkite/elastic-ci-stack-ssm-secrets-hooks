@@ -38,7 +38,7 @@ pbcopy < id_rsa_buildkite.pub # paste this into your github deploy key
 
 # create a managed secret with the private key
 aws secretsmanager create-secret \
-  --name "/buildkite/my-org/ssh-private-key" \
+  --name "buildkite/my-org/ssh-private-key" \
   --secret-binary file://id_rsa_buildkite
 ```
 
@@ -48,7 +48,7 @@ This example stores a custom value for `MY_FAVORITE_LLAMA`, with a value of `the
 
 ```bash
 aws secretsmanager create-secret \
-  --name "/buildkite/my-org/env/MY_FAVORITE_LLAMA" \
+  --name "buildkite/my-org/env/MY_FAVORITE_LLAMA" \
   --secret-string "they are all good llamas"
 ```
 
@@ -63,7 +63,7 @@ https://user:password@host/path/to/repo
 ```bash
 # create a managed secret with the private key
 aws secretsmanager create-secret \
-  --name "/buildkite/my-org/git-credentials" \
+  --name "buildkite/my-org/git-credentials" \
   --secret-binary "https://user:password@host/path/to/repo"
 ```
 
