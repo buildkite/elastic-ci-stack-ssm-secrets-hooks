@@ -25,6 +25,12 @@ while read -r name _ ; do
   secrets+=("$name")
 done < <(sm_secret_names)
 
+# Finish quickly if no secrets are found
+if [ ${#secrets[@]} -eq 0 ] ; then
+  echo "No secrets found"
+  exit 0
+fi
+
 # First up we look for ssh keys if the repository is ssh
 if [[ "${BUILDKITE_REPO:-}" =~ ^git ]] ; then
   ssh_key_paths=(
