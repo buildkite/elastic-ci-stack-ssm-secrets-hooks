@@ -19,7 +19,7 @@ When run via the agent environment and pre-exit hook, your builds will check the
 * `buildkite/{org_slug}/pipeline/{pipeline_slug}/git-credentials`
 * `buildkite/{org_slug}/pipeline/{pipeline_slug}/env/{env_name}`
 
-Inside those secrets, the following keys will be checked:
+For those secrets, the following fields will be expected:
 
 * `ssh-private-key` is a `SecretBinary` field that contains an ssh key for ssh git checkouts
 * `git-credentials` is a `SecretBinary` field that stores git credentials for https git checkouts
@@ -68,16 +68,6 @@ aws secretsmanager create-secret \
 ```
 
 These are then exposed via a [gitcredential helper](https://git-scm.com/docs/gitcredentials) which will download the credentials as needed.
-
-## Configuration
-
-### `SM_SECRETS_HOOKS_ENABLED`
-
-If set to false, off or 0 this disables the secret manager hooks entirely.
-
-### `BUILDKITE_SECRETS_MANAGER_PREFIX`
-
-The prefix to use in secret names, defaults to `elastic-ci-stack`
 
 ## License
 
