@@ -64,7 +64,7 @@ teardown() {
   export BUILDKITE_PIPELINE_SLUG=test
   export BUILDKITE_REPO=git@github.com:buildkite/llamas.git
   export BUILDKITE_SECRETS_MANAGER_DEBUG=true
-  export BUILDKITE_ORG_SLUG=test-org
+  export BUILDKITE_ORGANIZATION_SLUG=test-org
 
   stub ssh-agent "-s : echo export SSH_AGENT_PID=93799"
 
@@ -91,7 +91,7 @@ teardown() {
   export BUILDKITE_PIPELINE_SLUG=test
   export BUILDKITE_REPO=https://github.com/buildkite/llamas.git
   export BUILDKITE_SECRETS_MANAGER_DEBUG=true
-  export BUILDKITE_ORG_SLUG=test-org
+  export BUILDKITE_ORGANIZATION_SLUG=test-org
 
   stub aws \
     "secretsmanager list-secrets : cat $TMP_DIR/git-credentials-secrets" \
@@ -118,7 +118,7 @@ teardown() {
   export BUILDKITE_PIPELINE_SLUG=test
   export BUILDKITE_REPO=file://blah/llamas.git
   export BUILDKITE_SECRETS_MANAGER_DEBUG=true
-  export BUILDKITE_ORG_SLUG=test-org
+  export BUILDKITE_ORGANIZATION_SLUG=test-org
 
   stub aws \
     "secretsmanager list-secrets : cat $TMP_DIR/env-secrets" \
@@ -136,7 +136,7 @@ teardown() {
   export BUILDKITE_PIPELINE_SLUG=test
   export BUILDKITE_REPO=file://blah/llamas.git
   export BUILDKITE_SECRETS_MANAGER_DEBUG=true
-  export BUILDKITE_ORG_SLUG=test-org
+  export BUILDKITE_ORGANIZATION_SLUG=test-org
 
   stub aws \
     "secretsmanager list-secrets : cat $TMP_DIR/env-secrets-pipeline" \

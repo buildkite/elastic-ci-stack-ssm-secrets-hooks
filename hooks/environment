@@ -10,7 +10,7 @@ export TMPDIR=${TMPDIR:-/tmp}
 export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
 
 # A non-configurable prefix used on all secrets
-readonly secret_prefix="buildkite/${BUILDKITE_ORG_SLUG}"
+readonly secret_prefix="buildkite/${BUILDKITE_ORGANIZATION_SLUG}"
 
 debug() {
   if [[ "${BUILDKITE_SECRETS_MANAGER_DEBUG:-false}" =~ (true|on|1) ]] ; then
