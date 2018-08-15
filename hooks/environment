@@ -8,7 +8,9 @@ basedir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd )"
 
 export TMPDIR=${TMPDIR:-/tmp}
 export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
-readonly prefix="${BUILDKITE_SECRETS_MANAGER_PREFIX:-elastic-ci-stack}"
+
+# A non-configurable prefix used on all secrets
+readonly secret_prefix="buildkite/${BUILDKITE_ORG_SLUG}"
 
 debug() {
   if [[ "${BUILDKITE_SECRETS_MANAGER_DEBUG:-false}" =~ (true|on|1) ]] ; then
@@ -16,8 +18,8 @@ debug() {
   fi
 }
 
-echo "~~~ Downloading secrets from AWS Secrets Manager" >&2;
-debug "Searching in prefix ${prefix} in region ${AWS_DEFAULT_REGION}"
+echo "~~~ Loading secrets from AWS Secrets Manager" >&2;
+debug "Searching in prefix ${secret_prefix} in region ${AWS_DEFAULT_REGION}"
 
 # Read all the secret keys into an array
 secrets=()
@@ -34,8 +36,8 @@ fi
 # First up we look for ssh keys if the repository is ssh
 if [[ "${BUILDKITE_REPO:-}" =~ ^git ]] ; then
   ssh_key_paths=(
-    "${prefix}/global/ssh-private-key"
-    "${prefix}/pipeline/${BUILDKITE_PIPELINE_SLUG}/ssh-private-key"
+    "${secret_prefix}/ssh-private-key"
+    "${secret_prefix}/pipeline/${BUILDKITE_PIPELINE_SLUG}/ssh-private-key"
   )
 
   # Look in our key paths in order, but we'll load them all
@@ -67,8 +69,8 @@ fi
 # Otherwise check for git credentials for https, use the first one we find
 if [[ "${BUILDKITE_REPO:-}" =~ ^http ]] ; then
   git_credentials_paths=(
-    "${prefix}/global/git-credentials"
-    "${prefix}/pipeline/${BUILDKITE_PIPELINE_SLUG}/git-credentials"
+    "${secret_prefix}/git-credentials"
+    "${secret_prefix}/pipeline/${BUILDKITE_PIPELINE_SLUG}/git-credentials"
   )
 
   git_credentials=()
@@ -91,8 +93,8 @@ fi
 
 # Finally look for environment variables
 env_path_prefixes=(
-  "${prefix}/global/env/"
-  "${prefix}/pipeline/${BUILDKITE_PIPELINE_SLUG}/env/"
+  "${secret_prefix}/env/"
+  "${secret_prefix}/pipeline/${BUILDKITE_PIPELINE_SLUG}/env/"
 )
 
 for secret_name in ${secrets[*]} ; do
@@ -108,9 +110,7 @@ for secret_name in ${secrets[*]} ; do
       secret_env_key=$(basename $secret_name)
       export "$secret_env_key"="$secret_value"
     else
-      debug "didn't match $secret_name"
+      debug "Env $secret_name didn't match $env_path_prefix"
     fi
   done
 done
-
-
