@@ -14,16 +14,19 @@ When run via the agent environment and pre-exit hook, your builds will check the
 
 * `buildkite/{org_slug}/ssh-private-key`
 * `buildkite/{org_slug}/git-credentials`
-* `buildkite/{org_slug}/env/{env_name}`
+* `buildkite/{org_slug}/env/{file}`
 * `buildkite/{org_slug}/pipeline/{pipeline_slug}/ssh-private-key`
 * `buildkite/{org_slug}/pipeline/{pipeline_slug}/git-credentials`
-* `buildkite/{org_slug}/pipeline/{pipeline_slug}/env/{env_name}`
+* `buildkite/{org_slug}/pipeline/{pipeline_slug}/env/{file}`
+
+`{file}` can contain one or more key: value pairs in SSM.
+
 
 For those secrets, the following types will be expected:
 
 * `ssh-private-key` is a `SecretBinary` that contains an ssh key for ssh git checkouts
-* `git-credentials` is a `SecretBinary` that stores git credentials for https git checkouts
-* `env/{env_name}` will be a `SecretString` and `{env_name}` will be the environment key that is set
+* `git-credentials` is a `SecretString` that stores git credentials for https git checkouts
+* `env/{file}` will be a `SecretString` and key name for each key: value pair will be the environment key that is set. Secrets are loaded in alphabetical order and keys are NOT unique. The plugin does no currently enforce unique keys.
 
 ## Uploading Secrets
 

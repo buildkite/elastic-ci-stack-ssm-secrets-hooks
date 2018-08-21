@@ -9,6 +9,8 @@ git clone https://github.com/buildkite/elastic-ci-stack-secrets-manager-hooks.gi
 
 Modify your agent's global hooks (see [https://buildkite.com/docs/agent/v3/hooks#global-hooks](https://buildkite.com/docs/agent/v3/hooks#global-hooks)):
 
+The plugin requires `jq` to be installed on the instance.
+
 ## `${BUILDKITE_ROOT}/hooks/environment`
 
 ```bash

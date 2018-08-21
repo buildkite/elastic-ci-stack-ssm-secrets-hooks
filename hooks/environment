@@ -48,7 +48,8 @@ if [[ "${BUILDKITE_REPO:-}" =~ ^git ]] ; then
     if in_array "$key" "${secrets[@]}" ; then
       echo "Found ssh-key at ${key}" >&2;
 
-      if ! ssh_key=$(sm_secret_get "$key") ; then
+      ssh_key=$(sm_secret_get "$key")
+      if [[ ${ssh_key} = "None" ]]; then
         echo "+++ :warning: Failed to get secret $key" >&2;
         exit 1
       fi
@@ -101,14 +102,7 @@ for secret_name in ${secrets[*]} ; do
   for env_path_prefix in ${env_path_prefixes[*]} ; do
     if [[ $secret_name =~ ^$env_path_prefix ]] ; then
       echo "Found env $secret_name" >&2;
-
-      if ! secret_value=$(sm_secret_get "$secret_name") ; then
-        echo "+++ :warning: Failed to get secret $secret_name" >&2;
-        exit 1
-      fi
-
-      secret_env_key=$(basename $secret_name)
-      export "$secret_env_key"="$secret_value"
+      sm_secret_get "$secret_name" "SecretString"
     else
       debug "Env $secret_name didn't match $env_path_prefix"
     fi
