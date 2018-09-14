@@ -38,6 +38,7 @@ fi
 # First up we look for ssh keys if the repository is ssh
 if [[ "${BUILDKITE_REPO:-}" =~ ^git ]] ; then
   ssh_key_paths=(
+    "${BUILDKITE_SECRETS_PREFIX}/ssh-private-key"
     "${BUILDKITE_SECRETS_PREFIX}/${BUILDKITE_PIPELINE_SLUG}/ssh-private-key"
   )
 
@@ -70,6 +71,7 @@ fi
 # Otherwise check for git credentials for https, use the first one we find
 if [[ "${BUILDKITE_REPO:-}" =~ ^http ]] ; then
   git_credentials_paths=(
+    "${BUILDKITE_SECRETS_PREFIX}/git-credentials"
     "${BUILDKITE_SECRETS_PREFIX}/${BUILDKITE_PIPELINE_SLUG}/git-credentials"
   )
 

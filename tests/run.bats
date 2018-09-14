@@ -14,8 +14,8 @@ setup() {
 {
     "SecretList": [
         {
-            "ARN": "arn:aws:secretsmanager:us-east-1:xxxxx:secret:buildkite/my-queue/my-pipeline/ssh-private-key-xxxx",
-            "Name": "buildkite/my-queue/my-pipeline/ssh-private-key"
+            "ARN": "arn:aws:secretsmanager:us-east-1:xxxxx:secret:buildkite/my-org/my-queue/my-pipeline/ssh-private-key-xxxx",
+            "Name": "buildkite/my-org/my-queue/my-pipeline/ssh-private-key"
         }
     ]
 }
@@ -24,8 +24,8 @@ EOF
 {
     "SecretList": [
         {
-            "ARN": "arn:aws:secretsmanager:us-east-1:xxxxx:secret:buildkite/my-queue/my-pipeline/git-credentials-xxxx",
-            "Name": "buildkite/my-queue/my-pipeline/git-credentials"
+            "ARN": "arn:aws:secretsmanager:us-east-1:xxxxx:secret:buildkite/my-org/my-queue/my-pipeline/git-credentials-xxxx",
+            "Name": "buildkite/my-org/my-queue/my-pipeline/git-credentials"
         }
     ]
 }
@@ -40,13 +40,13 @@ teardown() {
   export BUILDKITE_PIPELINE_SLUG=my-pipeline
   export BUILDKITE_REPO=git@github.com:buildkite/llamas.git
   export BUILDKITE_SECRETS_MANAGER_DEBUG=true
-  export BUILDKITE_SECRETS_PREFIX=buildkite/my-queue
+  export BUILDKITE_SECRETS_PREFIX=buildkite/my-org/my-queue
 
   stub ssh-agent "-s : echo export SSH_AGENT_PID=93799"
 
   stub aws \
     "secretsmanager list-secrets : cat $TMP_DIR/ssh-secrets" \
-    "secretsmanager get-secret-value --secret-id buildkite/my-queue/my-pipeline/ssh-private-key --query SecretBinary --output text : echo llamas"
+    "secretsmanager get-secret-value --secret-id buildkite/my-org/my-queue/my-pipeline/ssh-private-key --query SecretBinary --output text : echo llamas"
 
   stub ssh-add \
     "- : cat > $TMP_DIR/ssh-add-input ; echo added ssh key"
@@ -67,11 +67,11 @@ teardown() {
   export BUILDKITE_PIPELINE_SLUG=my-pipeline
   export BUILDKITE_REPO=https://github.com/buildkite/llamas.git
   export BUILDKITE_SECRETS_MANAGER_DEBUG=true
-  export BUILDKITE_SECRETS_PREFIX=buildkite/my-queue
+  export BUILDKITE_SECRETS_PREFIX=buildkite/my-org/my-queue
 
   stub aws \
     "secretsmanager list-secrets : cat $TMP_DIR/git-credentials-secrets" \
-    "secretsmanager get-secret-value --secret-id buildkite/my-queue/my-pipeline/git-credentials --query SecretBinary --output text : echo https://user:password@host/path/to/repo"
+    "secretsmanager get-secret-value --secret-id buildkite/my-org/my-queue/my-pipeline/git-credentials --query SecretBinary --output text : echo https://user:password@host/path/to/repo"
 
   run bash -c "$PWD/hooks/pre-command && $PWD/hooks/pre-exit"
 
@@ -79,7 +79,7 @@ teardown() {
   assert_output --partial "Adding git-credentials"
   assert_output --partial "Setting GIT_CONFIG_PARAMETERS"
 
-  run bash -c "$PWD/git-credential-sm-secrets buildkite/my-queue/my-pipeline/git-credentials"
+  run bash -c "$PWD/git-credential-sm-secrets buildkite/my-org/my-queue/my-pipeline/git-credentials"
 
   assert_success
   assert_output --partial "protocol=https"

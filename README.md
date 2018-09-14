@@ -11,10 +11,12 @@ The following credential types are supported:
 
 When run via the agent pre-checkout and pre-exit hook, your builds will check the following Secrets Manager paths:
 
-* `buildkite/{queue_name}/{pipeline_slug}/ssh-private-key`
-* `buildkite/{queue_name}/{pipeline_slug}/git-credentials`
+* `buildkite/{org-slug}/{queue-name}/ssh-private-key`
+* `buildkite/{org-slug}/{queue-name}/{pipeline-slug}/ssh-private-key`
+* `buildkite/{org-slug}/{queue-name}/git-credentials`
+* `buildkite/{org-slug}/{queue-name}/{pipeline-slug}/git-credentials`
 
-Both of these secrets use the `SecretBinary` type.
+All secrets use the `SecretBinary` type.
 
 ## Uploading Secrets
 
@@ -29,7 +31,7 @@ pbcopy < id_rsa_buildkite.pub # paste this into your github deploy key
 
 # create a managed secret with the private key
 aws secretsmanager create-secret \
-  --name "buildkite/<queue-name>/<pipeline-slug>/ssh-private-key" \
+  --name "buildkite/<org-slug>/<queue-name>/<pipeline-slug>/ssh-private-key" \
   --secret-binary file://id_rsa_buildkite
 ```
 
@@ -39,7 +41,7 @@ Here's an example for how you'd configure git credentials for a pipeline, using 
 
 ```bash
 aws secretsmanager create-secret \
-  --name "buildkite/<queue-name>/<pipeline-slug>/git-credentials" \
+  --name "buildkite/<org-slug>/<queue-name>/<pipeline-slug>/git-credentials" \
   --secret-string "https://<username>:<access-token>@github.com"
 ```
 
