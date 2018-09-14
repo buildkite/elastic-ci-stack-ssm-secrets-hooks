@@ -9,8 +9,10 @@ basedir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd )"
 export TMPDIR=${TMPDIR:-/tmp}
 export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
 
-# A non-configurable prefix used on all secrets
-readonly secret_prefix="buildkite/${BUILDKITE_ORGANIZATION_SLUG}"
+if [[ -z "${BUILDKITE_SECRETS_PREFIX:-}" ]] ; then
+  echo "Must set a prefix with BUILDKITE_SECRETS_PREFIX"
+  exit 1
+fi
 
 debug() {
   if [[ "${BUILDKITE_SECRETS_MANAGER_DEBUG:-false}" =~ (true|on|1) ]] ; then
@@ -19,7 +21,7 @@ debug() {
 }
 
 echo "~~~ Loading secrets from AWS Secrets Manager" >&2;
-debug "Searching in prefix ${secret_prefix} in region ${AWS_DEFAULT_REGION}"
+debug "Searching in prefix ${BUILDKITE_SECRETS_PREFIX} in region ${AWS_DEFAULT_REGION}"
 
 # Read all the secret keys into an array
 secrets=()
@@ -36,8 +38,7 @@ fi
 # First up we look for ssh keys if the repository is ssh
 if [[ "${BUILDKITE_REPO:-}" =~ ^git ]] ; then
   ssh_key_paths=(
-    "${secret_prefix}/ssh-private-key"
-    "${secret_prefix}/pipeline/${BUILDKITE_PIPELINE_SLUG}/ssh-private-key"
+    "${BUILDKITE_SECRETS_PREFIX}/${BUILDKITE_PIPELINE_SLUG}/ssh-private-key"
   )
 
   # Look in our key paths in order, but we'll load them all
@@ -69,8 +70,7 @@ fi
 # Otherwise check for git credentials for https, use the first one we find
 if [[ "${BUILDKITE_REPO:-}" =~ ^http ]] ; then
   git_credentials_paths=(
-    "${secret_prefix}/git-credentials"
-    "${secret_prefix}/pipeline/${BUILDKITE_PIPELINE_SLUG}/git-credentials"
+    "${BUILDKITE_SECRETS_PREFIX}/${BUILDKITE_PIPELINE_SLUG}/git-credentials"
   )
 
   git_credentials=()
@@ -90,27 +90,3 @@ if [[ "${BUILDKITE_REPO:-}" =~ ^http ]] ; then
     GIT_CONFIG_PARAMETERS=$( IFS=' '; echo -n "${git_credentials[*]}" )
   fi
 fi
-
-# Finally look for environment variables
-env_path_prefixes=(
-  "${secret_prefix}/env/"
-  "${secret_prefix}/pipeline/${BUILDKITE_PIPELINE_SLUG}/env/"
-)
-
-for secret_name in ${secrets[*]} ; do
-  for env_path_prefix in ${env_path_prefixes[*]} ; do
-    if [[ $secret_name =~ ^$env_path_prefix ]] ; then
-      echo "Found env $secret_name" >&2;
-
-      if ! secret_value=$(sm_secret_get "$secret_name") ; then
-        echo "+++ :warning: Failed to get secret $secret_name" >&2;
-        exit 1
-      fi
-
-      secret_env_key=$(basename $secret_name)
-      export "$secret_env_key"="$secret_value"
-    else
-      debug "Env $secret_name didn't match $env_path_prefix"
-    fi
-  done
-done

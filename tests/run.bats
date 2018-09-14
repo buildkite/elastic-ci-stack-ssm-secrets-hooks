@@ -14,8 +14,8 @@ setup() {
 {
     "SecretList": [
         {
-            "ARN": "arn:aws:secretsmanager:us-east-1:xxxxx:secret:buildkite/test-org/ssh-private-key-xxxx",
-            "Name": "buildkite/test-org/ssh-private-key"
+            "ARN": "arn:aws:secretsmanager:us-east-1:xxxxx:secret:buildkite/my-queue/my-pipeline/ssh-private-key-xxxx",
+            "Name": "buildkite/my-queue/my-pipeline/ssh-private-key"
         }
     ]
 }
@@ -24,32 +24,8 @@ EOF
 {
     "SecretList": [
         {
-            "ARN": "arn:aws:secretsmanager:us-east-1:xxxxx:secret:buildkite/test-org/buildkite/test-org/git-credentials-xxxx",
-            "Name": "buildkite/test-org/git-credentials"
-        }
-    ]
-}
-EOF
-  cat << EOF > $TMP_DIR/env-secrets
-{
-    "SecretList": [
-        {
-            "ARN": "arn:aws:secretsmanager:us-east-1:xxxxx:secret:buildkite/tests/test-org/env/MY_FAVORITE_LLAMA-xxxx",
-            "Name": "buildkite/test-org/env/MY_FAVORITE_LLAMA"
-        }
-    ]
-}
-EOF
-  cat << EOF > $TMP_DIR/env-secrets-pipeline
-{
-    "SecretList": [
-        {
-            "ARN": "arn:aws:secretsmanager:us-east-1:xxxxx:secret:buildkite/test-org/env/MY_FAVORITE_LLAMA-xxxx",
-            "Name": "buildkite/test-org/env/MY_FAVORITE_LLAMA"
-        },
-        {
-            "ARN": "arn:aws:secretsmanager:us-east-1:xxxxx:secret:buildkite/test-org/pipeline/test/env/MY_FAVORITE_LLAMA-xxx",
-            "Name": "buildkite/test-org/pipeline/test/env/MY_FAVORITE_LLAMA"
+            "ARN": "arn:aws:secretsmanager:us-east-1:xxxxx:secret:buildkite/my-queue/my-pipeline/git-credentials-xxxx",
+            "Name": "buildkite/my-queue/my-pipeline/git-credentials"
         }
     ]
 }
@@ -60,22 +36,22 @@ teardown() {
   rm -rf "$TMP_DIR"
 }
 
-@test "Load ssh-private-key file from global" {
-  export BUILDKITE_PIPELINE_SLUG=test
+@test "Load ssh-private-key file into ssh-agent" {
+  export BUILDKITE_PIPELINE_SLUG=my-pipeline
   export BUILDKITE_REPO=git@github.com:buildkite/llamas.git
   export BUILDKITE_SECRETS_MANAGER_DEBUG=true
-  export BUILDKITE_ORGANIZATION_SLUG=test-org
+  export BUILDKITE_SECRETS_PREFIX=buildkite/my-queue
 
   stub ssh-agent "-s : echo export SSH_AGENT_PID=93799"
 
   stub aws \
     "secretsmanager list-secrets : cat $TMP_DIR/ssh-secrets" \
-    "secretsmanager get-secret-value --secret-id buildkite/test-org/ssh-private-key --query SecretBinary --output text : echo llamas"
+    "secretsmanager get-secret-value --secret-id buildkite/my-queue/my-pipeline/ssh-private-key --query SecretBinary --output text : echo llamas"
 
   stub ssh-add \
     "- : cat > $TMP_DIR/ssh-add-input ; echo added ssh key"
 
-  run bash -c "$PWD/hooks/environment && $PWD/hooks/pre-exit"
+  run bash -c "$PWD/hooks/pre-command && $PWD/hooks/pre-exit"
 
   assert_success
   assert_output --partial "ssh-agent (pid 93799)"
@@ -87,66 +63,29 @@ teardown() {
   unstub aws
 }
 
-@test "Load git-credentials from global into GIT_CONFIG_PARAMETERS" {
-  export BUILDKITE_PIPELINE_SLUG=test
+@test "Load git-credentials into GIT_CONFIG_PARAMETERS" {
+  export BUILDKITE_PIPELINE_SLUG=my-pipeline
   export BUILDKITE_REPO=https://github.com/buildkite/llamas.git
   export BUILDKITE_SECRETS_MANAGER_DEBUG=true
-  export BUILDKITE_ORGANIZATION_SLUG=test-org
+  export BUILDKITE_SECRETS_PREFIX=buildkite/my-queue
 
   stub aws \
     "secretsmanager list-secrets : cat $TMP_DIR/git-credentials-secrets" \
-    "secretsmanager get-secret-value --secret-id buildkite/test-org/git-credentials --query SecretBinary --output text : echo https://user:password@host/path/to/repo"
+    "secretsmanager get-secret-value --secret-id buildkite/my-queue/my-pipeline/git-credentials --query SecretBinary --output text : echo https://user:password@host/path/to/repo"
 
-  run bash -c "$PWD/hooks/environment && $PWD/hooks/pre-exit"
+  run bash -c "$PWD/hooks/pre-command && $PWD/hooks/pre-exit"
 
   assert_success
   assert_output --partial "Adding git-credentials"
   assert_output --partial "Setting GIT_CONFIG_PARAMETERS"
 
-  run bash -c "$PWD/git-credential-sm-secrets buildkite/test-org/git-credentials"
+  run bash -c "$PWD/git-credential-sm-secrets buildkite/my-queue/my-pipeline/git-credentials"
 
   assert_success
   assert_output --partial "protocol=https"
   assert_output --partial "host=host"
   assert_output --partial "username=user"
   assert_output --partial "password=password"
-
-  unstub aws
-}
-
-@test "Load env from global" {
-  export BUILDKITE_PIPELINE_SLUG=test
-  export BUILDKITE_REPO=file://blah/llamas.git
-  export BUILDKITE_SECRETS_MANAGER_DEBUG=true
-  export BUILDKITE_ORGANIZATION_SLUG=test-org
-
-  stub aws \
-    "secretsmanager list-secrets : cat $TMP_DIR/env-secrets" \
-    "secretsmanager get-secret-value --secret-id buildkite/test-org/env/MY_FAVORITE_LLAMA --query SecretBinary --output text : echo they are all good llamas"
-
-  run bash -c ". $PWD/hooks/environment && echo \$MY_FAVORITE_LLAMA && $PWD/hooks/pre-exit"
-
-  assert_success
-  assert_output --partial "they are all good llamas"
-
-  unstub aws
-}
-
-@test "Load env from pipeline over global" {
-  export BUILDKITE_PIPELINE_SLUG=test
-  export BUILDKITE_REPO=file://blah/llamas.git
-  export BUILDKITE_SECRETS_MANAGER_DEBUG=true
-  export BUILDKITE_ORGANIZATION_SLUG=test-org
-
-  stub aws \
-    "secretsmanager list-secrets : cat $TMP_DIR/env-secrets-pipeline" \
-    "secretsmanager get-secret-value --secret-id buildkite/test-org/env/MY_FAVORITE_LLAMA --query SecretBinary --output text : echo nope" \
-    "secretsmanager get-secret-value --secret-id buildkite/test-org/pipeline/test/env/MY_FAVORITE_LLAMA --query SecretBinary --output text : echo they are all good llamas"
-
-  run bash -c ". $PWD/hooks/environment && echo \$MY_FAVORITE_LLAMA && $PWD/hooks/pre-exit"
-
-  assert_success
-  assert_output --partial "they are all good llamas"
 
   unstub aws
 }
