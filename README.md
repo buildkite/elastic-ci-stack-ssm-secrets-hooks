@@ -22,7 +22,7 @@ All secrets use the `SecretBinary` type.
 
 ### Setting SSH Keys for Git Checkouts
 
-This example uploads an ssh key for a git+ssh checkout for a pipeline:
+This example uploads an ssh key for a git+ssh checkout for all pipelines:
 
 ```bash
 # generate a deploy key for your project
@@ -31,13 +31,29 @@ pbcopy < id_rsa_buildkite.pub # paste this into your github deploy key
 
 # create a managed secret with the private key
 aws secretsmanager create-secret \
+  --name "buildkite/<org-slug>/<queue-name>/ssh-private-key" \
+  --secret-binary file://id_rsa_buildkite
+```
+
+Credentials can also be set for a specific pipeline with:
+
+```bash
+aws secretsmanager create-secret \
   --name "buildkite/<org-slug>/<queue-name>/<pipeline-slug>/ssh-private-key" \
   --secret-binary file://id_rsa_buildkite
 ```
 
 ### Configuring Git Credentials
 
-Here's an example for how you'd configure git credentials for a pipeline, using a [GitHub personal access token](https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/):
+Here's an example for how you'd configure git credentials for all pipelines, using a [GitHub personal access token](https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/):
+
+```bash
+aws secretsmanager create-secret \
+  --name "buildkite/<org-slug>/<queue-name>/git-credentials" \
+  --secret-string "https://<username>:<access-token>@github.com"
+```
+
+Credentials can also be set for a specific pipeline with:
 
 ```bash
 aws secretsmanager create-secret \
