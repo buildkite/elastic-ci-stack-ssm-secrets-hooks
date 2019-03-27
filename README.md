@@ -13,10 +13,12 @@ Used in the [Elastic CI Stack for AWS](https://github.com/buildkite/elastic-ci-s
 
 When run via the agent pre-checkout and pre-exit hook, your builds will check the following Secrets Manager paths:
 
-* `buildkite/{queue_name}/ssh-private-key`
-* `buildkite/{queue_name}/git-credentials
-* `buildkite/{queue_name}/{pipeline_slug}/ssh-private-key`
-* `buildkite/{queue_name}/{pipeline_slug}/git-credentials`
+* `/buildkite/{queue_name}/ssh-private-key`
+* `/buildkite/{queue_name}/git-credentials`
+* `/buildkite/{queue_name}/{pipeline_slug}/ssh-private-key`
+* `/buildkite/{queue_name}/{pipeline_slug}/git-credentials`
+
+You can customize the prefix of `/buildkite` by setting `$BUILDKITE_SSM_SECRETS_PREFIX`.
 
 All of these secrets expect a `SecureString` type.
 
