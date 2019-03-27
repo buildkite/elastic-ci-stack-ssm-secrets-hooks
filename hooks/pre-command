@@ -9,57 +9,45 @@ basedir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd )"
 export TMPDIR=${TMPDIR:-/tmp}
 export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
 
-if [[ -z "${BUILDKITE_SECRETS_PREFIX:-}" ]] ; then
+if [[ -z "${BUILDKITE_SSM_SECRETS_PREFIX:-}" ]] ; then
   echo "Must set a prefix with BUILDKITE_SECRETS_PREFIX"
   exit 1
 fi
 
 debug() {
-  if [[ "${BUILDKITE_SECRETS_MANAGER_DEBUG:-false}" =~ (true|on|1) ]] ; then
+  if [[ "${BUILDKITE_SSM_SECRETS_DEBUG:-false}" =~ (true|on|1) ]] ; then
     echo "$@"
   fi
 }
 
-echo "~~~ Loading secrets from AWS Secrets Manager" >&2;
-debug "Searching in prefix ${BUILDKITE_SECRETS_PREFIX} in region ${AWS_DEFAULT_REGION}"
-
-# Read all the secret keys into an array
-secrets=()
-while read -r name _ ; do
-  secrets+=("$name")
-done < <(sm_secret_names)
-
-# Finish quickly if no secrets are found
-if [ ${#secrets[@]} -eq 0 ] ; then
-  echo "No secrets found"
-  exit 0
-fi
+echo "~~~ Loading secrets from AWS SSM Parameter Store" >&2;
+debug "Searching in prefix ${BUILDKITE_SSM_SECRETS_PREFIX} in region ${AWS_DEFAULT_REGION}"
 
 # First up we look for ssh keys if the repository is ssh
 if [[ "${BUILDKITE_REPO:-}" =~ ^git ]] ; then
   ssh_key_paths=(
-    "${BUILDKITE_SECRETS_PREFIX}/${BUILDKITE_PIPELINE_SLUG}/ssh-private-key"
+    "${BUILDKITE_SSM_SECRETS_PREFIX}/${BUILDKITE_PIPELINE_SLUG}/ssh-private-key"
+    "${BUILDKITE_SSM_SECRETS_PREFIX}/ssh-private-key"
   )
 
-  # Look in our key paths in order, but we'll load them all
-  for key in ${ssh_key_paths[*]} ; do
-    debug "Checking ${key}" >&2
+  ssh_keys="$(aws ssm get-parameters \
+    --names "${ssh_key_paths[@]}" \
+    --with-decryption \
+    --query Parameters[*].Value \
+    --output text)"
 
-    # Check if that secret key exists
-    if in_array "$key" "${secrets[@]}" ; then
-      echo "Found ssh-key at ${key}" >&2;
+  OIFS=$IFS
+  IFS=$'\t'
 
-      if ! ssh_key=$(sm_secret_get "$key") ; then
-        echo "+++ :warning: Failed to get secret $key" >&2;
-        exit 1
-      fi
-
-      # Add the ssh key to an ephemeral ssh agent so the key never touches disk
-      debug "Got ${#ssh_key} bytes of ssh key"
-      add_ssh_private_key_to_agent "$ssh_key"
-      key_found=1
-    fi
+  # Load all the secrets found
+  for ssh_key in $ssh_keys ; do
+    # Add the ssh key to an ephemeral ssh agent so the key never touches disk
+    debug "Got ${#ssh_key} bytes of ssh key"
+    add_ssh_private_key_to_agent "$ssh_key"
+    key_found=1
   done
+
+  IFS=$OIFS
 
   if [[ -z "${key_found:-}" ]] ; then
     echo "+++ :warning: Failed to find any ssh key secrets" >&2;
@@ -70,21 +58,30 @@ fi
 # Otherwise check for git credentials for https, use the first one we find
 if [[ "${BUILDKITE_REPO:-}" =~ ^http ]] ; then
   git_credentials_paths=(
-    "${BUILDKITE_SECRETS_PREFIX}/${BUILDKITE_PIPELINE_SLUG}/git-credentials"
+    "${BUILDKITE_SSM_SECRETS_PREFIX}/${BUILDKITE_PIPELINE_SLUG}/git-credentials"
+    "${BUILDKITE_SSM_SECRETS_PREFIX}/git-credentials"
   )
+
+  git_credentials_found="$(aws ssm get-parameters \
+    --names "${git_credentials_paths[@]}" \
+    --query Parameters[*].Name \
+    --output text 2>/dev/null || true)"
 
   git_credentials=()
 
-  for key in ${git_credentials_paths[*]} ; do
-    debug "Checking ${key}" >&2
+  if [[ -n "${git_credentials_found}" ]] ; then
+    OIFS=$IFS
+    IFS=$'\t'
 
-    if in_array "$key" "${secrets[@]}" ; then
-      echo "Adding git-credentials in $key as a credential helper" >&2;
+    for key in $git_credentials_found ; do
+      debug "Adding git-credentials in ${key} as a credential helper";
       git_credentials+=("'credential.helper=$basedir/git-credential-sm-secrets ${key}'")
-    fi
-  done
+    done
 
-  if [[ "${#git_credentials[@]}" -gt 0 ]] ; then
+    IFS=$OIFS
+  fi
+
+  if [[ "${#git_credentials[@]:-()}" -gt 0 ]] ; then
     export GIT_CONFIG_PARAMETERS
     debug "Setting GIT_CONFIG_PARAMETERS"
     GIT_CONFIG_PARAMETERS=$( IFS=' '; echo -n "${git_credentials[*]}" )

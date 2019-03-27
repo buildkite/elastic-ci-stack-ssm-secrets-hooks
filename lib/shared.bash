@@ -1,21 +1,13 @@
 #!/bin/bash
 
-sm() {
-  aws secretsmanager "$@"
-}
+ssm_secret_get() {
+  local path="$1"
 
-sm_secret_names() {
-  sm list-secrets | grep -i '^[[:space:]]*"Name":' | cut -d'"' -f 4
-}
-
-sm_secret_get() {
-  local secret_id="$1"
-  local query="${2:-SecretBinary}"
-
-  sm get-secret-value \
-    --secret-id "${secret_id}" \
-    --query "${query}" \
-    --output text
+  aws ssm get-parameters \
+      --names "$path}" \
+      --with-decryption \
+      --query Parameters[*].Value \
+      --output text
 }
 
 add_ssh_private_key_to_agent() {
@@ -27,11 +19,6 @@ add_ssh_private_key_to_agent() {
   fi
 
   echo "Loading ssh-key into ssh-agent (pid ${SSH_AGENT_PID:-})" >&2;
+  echo "$ssh_key"
   echo "$ssh_key" | env SSH_ASKPASS="/bin/false" ssh-add -
-}
-
-in_array() {
-  local e
-  for e in "${@:2}"; do [[ "$e" == "$1" ]] && return 0; done
-  return 1
 }
