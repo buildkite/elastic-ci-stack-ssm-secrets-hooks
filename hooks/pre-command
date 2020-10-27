@@ -10,7 +10,7 @@ export TMPDIR=${TMPDIR:-/tmp}
 export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
 
 if [[ -z "${BUILDKITE_SSM_SECRETS_PREFIX:-}" ]] ; then
-  echo "Must set a prefix with BUILDKITE_SECRETS_PREFIX"
+  echo "Must set a prefix with BUILDKITE_SSM_SECRETS_PREFIX"
   exit 1
 fi
 
