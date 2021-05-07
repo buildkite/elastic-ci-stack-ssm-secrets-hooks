@@ -46,7 +46,7 @@ Here's an example for how you'd configure git credentials for a pipeline, using 
 
 ```bash
 aws ssm put-parameter \
-        --name "$buildkite/<queue-name>/<pipeline-slug>/git-credentials" \
+        --name "/buildkite/<queue-name>/<pipeline-slug>/git-credentials" \
         --type SecureString \
         --value "https://<username>:<access-token>@github.com"
 ```
