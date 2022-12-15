@@ -7,8 +7,6 @@ The following credential types are supported:
 - `ssh-agent` for SSH Private Keys
 - `git-credential` via git's credential.helper
 
-Used in the [Elastic CI Stack for AWS](https://github.com/buildkite/elastic-ci-stack-for-aws).
-
 ## Usage
 
 When run via the agent pre-checkout and pre-exit hook, your builds will check the following Secrets Manager paths:
